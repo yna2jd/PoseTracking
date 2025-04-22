@@ -1,11 +1,13 @@
 import cv2
 import numpy as np
 import os
+import mediapipe as mp
+import pandas as pd
 
 # Load YOLO model
-weights_path = "C:/Users/aadar/Downloads/yolov3.weights"
-config_path = "testing/yolov3.cfg"
-names_path = "testing/coco.names"
+weights_path = "code/yolov3.weights"
+config_path = "code/yolov3.cfg"
+names_path = "code/coco.names"
 
 net = cv2.dnn.readNet(weights_path, config_path)
 layer_names = net.getLayerNames()
@@ -14,6 +16,12 @@ output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
 # Load class names
 with open(names_path, "r") as f:
     classes = [line.strip() for line in f.readlines()]
+
+# get mp blazepose ready
+mpPose = mp.solutions.pose
+pose = mpPose.Pose()
+mpDraw = mp.solutions.drawing_utils # For drawing keypoints
+points = mpPose.PoseLandmark # Landmarks
 
 dir = "pedestrians"
 for img_name in os.listdir(dir):
@@ -64,13 +72,28 @@ for img_name in os.listdir(dir):
     indices = cv2.dnn.NMSBoxes(boxes, confidences, confidence_threshold, nms_threshold)
 
     # Draw bounding boxes
+    people = []
     for i in indices.flatten():
         x, y, w, h = boxes[i]
         label = f"{classes[class_ids[i]]}: {confidences[i]:.2f}"
-        if "person" in label or True:
+        if "person" in label:
+            people.append(i)
             color = (0, 255, 0)  # Green box
-            cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
-            cv2.putText(image, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+            # cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
+            # cv2.putText(image, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+
+    # put blazeposes onto people
+    for i in range(len(people)):
+        x, y, w, h = boxes[people[i]]
+        temp = image[y:y+h, x:x+w]
+
+        # temp = np.zeros((h, w, 3)) # censoring for privacy
+
+        results = pose.process(temp)
+        if results.pose_landmarks:
+            mpDraw.draw_landmarks(temp, results.pose_landmarks, mpPose.POSE_CONNECTIONS) #draw landmarks on temp
+        
+        image[y:y+h, x:x+w] = temp
 
     # Show result
     cv2.imshow(img_name, image)
