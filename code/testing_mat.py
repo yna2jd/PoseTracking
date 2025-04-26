@@ -30,6 +30,12 @@ def plot_joints(names, style, coords):
     valid = ~np.isnan(points[0]) & ~np.isnan(points[1])
     plt.plot(points[0, valid], points[1, valid], style, linewidth=3)
 
+def return_joints(names, coords):
+    indices = lookup_part(names)
+    points = coords[:, indices]
+    valid = ~np.isnan(points[0]) & ~np.isnan(points[1])
+    return zip(points[0, valid], points[1, valid])
+
 def main():
     mat = scipy.io.loadmat("FLIC/examples.mat")
     examples = mat["examples"].squeeze()
@@ -54,7 +60,8 @@ def main():
     plot_joints(['lsho', 'lelb', 'lwri'], 'go-', coords)
     plot_joints(['rsho', 'relb', 'rwri'], 'mo-', coords)
     plot_joints(['rhip', 'lhip'], 'bo-', coords)
-    plot_joints(['leye', 'reye', 'nose', 'leye'], 'c.-', coords)
+    # plot_joints(['leye', 'reye', 'nose', 'leye'], 'c.-', coords)
+    plot_joints(['leye', 'reye', 'nose'], 'c.-', coords)
 
     plt.show()
 
