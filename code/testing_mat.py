@@ -36,11 +36,28 @@ def return_joints(names, coords):
     valid = ~np.isnan(points[0]) & ~np.isnan(points[1])
     return zip(points[0, valid], points[1, valid])
 
+def label_points(rand):
+    mat = scipy.io.loadmat("FLIC/examples.mat")
+    examples = mat["examples"].squeeze()
+    ex = examples[rand]
+    imgdir = "FLIC/images/"
+    img_name = ex[3][0]
+    img = cv2.imread(os.path.join(imgdir, img_name))
+    plt.imshow(img)
+    plt.axis("off")
+    coords = ex[2]
+    plot_joints(['lsho', 'lelb', 'lwri'], 'go-', coords)
+    plot_joints(['rsho', 'relb', 'rwri'], 'mo-', coords)
+    plot_joints(['rhip', 'lhip'], 'bo-', coords)
+    # plot_joints(['leye', 'reye', 'nose', 'leye'], 'c.-', coords)
+    plot_joints(['leye', 'reye', 'nose', 'leye'], 'c.-', coords)
+
 def main():
     mat = scipy.io.loadmat("FLIC/examples.mat")
     examples = mat["examples"].squeeze()
     i = random.randint(0, len(examples)-1)
     example = examples[i]
+    
 
     imgdir = "FLIC/images/"
     img_name = example[3][0]
@@ -61,7 +78,7 @@ def main():
     plot_joints(['rsho', 'relb', 'rwri'], 'mo-', coords)
     plot_joints(['rhip', 'lhip'], 'bo-', coords)
     # plot_joints(['leye', 'reye', 'nose', 'leye'], 'c.-', coords)
-    plot_joints(['leye', 'reye', 'nose'], 'c.-', coords)
+    plot_joints(['leye', 'reye', 'nose', 'leye'], 'c.-', coords)
 
     plt.show()
 
