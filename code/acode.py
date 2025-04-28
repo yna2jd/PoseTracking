@@ -31,9 +31,14 @@ mpDraw = mp.solutions.drawing_utils # For drawing keypoints
 points = mpPose.PoseLandmark # Landmarks
 
 def plot_points(coords):
-    x = [coords[i] for i in range(len(coords)) if i % 2 == 0]
-    y = [coords[i] for i in range(len(coords)) if i % 2 == 1]
+    # x = [coords[i] for i in range(len(coords)) if i % 2 == 0]
+    # y = [coords[i] for i in range(len(coords)) if i % 2 == 1]
+    x = coords[0::2]
+    y = coords[1::2]
     plt.plot(x, y, 'ro', markersize=3)
+
+def calc_coord_center(coords):
+    return np.average(coords, axis=0)
 
 class KeypointsDataset(Dataset):
     def __init__(self, dataframe, img_dir, transform=None):
@@ -64,8 +69,6 @@ class KeypointsDataset(Dataset):
 dataset = KeypointsDataset(df, dir)
 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-
-
 class KeypointModel(nn.Module):  # or I'll put my HW-3 one here
     def __init__(self):
         super(KeypointModel, self).__init__()
@@ -94,7 +97,7 @@ class KeypointModel(nn.Module):  # or I'll put my HW-3 one here
         )
 
         self.classifier = nn.Sequential(
-            nn.Dropout(p=0.14),
+            nn.Dropout(p=0.04),
             nn.Flatten(),
             # nn.Linear(32, 10)
             nn.Linear(36864, 22)
@@ -113,7 +116,6 @@ model = KeypointModel().to(device)
 # Optimizer and Loss
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 criterion = nn.MSELoss()
-
 
 def save_checkpoint(model, filename):
     torch.save(model.state_dict(), filename)
@@ -147,7 +149,7 @@ def train_model(model, dataloader, epochs=30, steps_per_epoch=5, checkpoint_path
 
 
 checkpoint_path = os.path.join(checkpoint_dir, "cp4.pth")
-train_model(model, dataloader, epochs=30, steps_per_epoch=5, checkpoint_path_in=checkpoint_path)
+# train_model(model, dataloader, epochs=30, steps_per_epoch=5, checkpoint_path_in=checkpoint_path)
 
 
 def test_model(model):
@@ -171,23 +173,39 @@ def test_model(model):
     plt.axis("off")
     
     # our model
-    print(coords)
+    coords = np.array(coords)
     plot_points(coords)
-    plt.show()
+    x = coords[0::2]
+    y = coords[1::2]
+    new_coords = np.array([np.array([x[i], y[i]]) for i in range(len(x))])
+    center_pred = calc_coord_center(new_coords)
+
+    # x, y = np.vstack(coords)
+    # plt.scatter(x, y)
+    # plt.show()
 
     # actual answer
-    label_points(rand_idx)
-    plt.show()
+    stuff = label_points(rand_idx)
+    temp = []
+    for i in stuff:
+        temp.append(np.array([i[0], i[1]]))
+    temp = np.array(temp)
+    center_lab = calc_coord_center(temp)
+
+    print("print it:", center_pred)
+    print("lab", center_lab)
+    print(f"ERROR: {center_pred-center_lab}")
+    # plt.show()
 
     # mediapipe
     results = pose.process(img_display)
     if results.pose_landmarks:
         mpDraw.draw_landmarks(img_display, results.pose_landmarks, mpPose.POSE_CONNECTIONS) #draw landmarks on temp
-    cv2.imshow(img_name, img_display)
-    cv2.waitKey(0)
+    # cv2.imshow(img_name, img_display)
+    # cv2.waitKey(0)
 
 load_checkpoint(model, checkpoint_path)
 checkpoint_path2 = os.path.join(checkpoint_dir, "cp5.pth")
-train_model(model, dataloader, epochs=10, steps_per_epoch=15, checkpoint_path_in=checkpoint_path2)
+# train_model(model, dataloader, epochs=10, steps_per_epoch=15, checkpoint_path_in=checkpoint_path2)
 
 test_model(model)
